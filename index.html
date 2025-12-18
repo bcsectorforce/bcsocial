@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bcsocial — Share Scientific Ideas</title>
+
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#121824;
+      --panel-2:#0f1622;
+      --accent:#4da3ff;
+      --accent-2:#7cffc4;
+      --text:#e6ecf3;
+      --muted:#9aa7b4;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 20% -10%, #162033 0%, transparent 60%),
+                  radial-gradient(1000px 500px at 100% 10%, #0f2a22 0%, transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+
+    header{
+      position:sticky;
+      top:0;
+      z-index:10;
+      background:rgba(11,15,20,.85);
+      backdrop-filter: blur(8px);
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+
+    .nav{
+      max-width:1100px;
+      margin:auto;
+      padding:14px 20px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    .logo{
+      font-weight:700;
+      font-size:1.1rem;
+    }
+
+    .logo span{ color:var(--accent); }
+
+    main{
+      max-width:1100px;
+      margin:30px auto;
+      padding:0 20px 60px;
+      display:grid;
+      grid-template-columns: 1fr 320px;
+      gap:24px;
+    }
+
+    @media(max-width:900px){
+      main{ grid-template-columns:1fr; }
+    }
+
+    .composer, .post, .card{
+      background:linear-gradient(180deg, var(--panel), var(--panel-2));
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:16px;
+      padding:16px;
+    }
+
+    .composer input,
+    .composer textarea{
+      width:100%;
+      margin-top:8px;
+      background:#0b111c;
+      border:1px solid rgba(255,255,255,.08);
+      color:var(--text);
+      border-radius:10px;
+      padding:10px 12px;
+      font-size:.95rem;
+    }
+
+    .composer textarea{
+      resize:vertical;
+      min-height:110px;
+    }
+
+    .actions{
+      margin-top:10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    button{
+      background:linear-gradient(135deg, var(--accent), var(--accent-2));
+      border:none;
+      padding:10px 18px;
+      border-radius:999px;
+      font-weight:700;
+      cursor:pointer;
+      color:#001018;
+    }
+
+    .feed{
+      margin-top:16px;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+
+    .meta{
+      display:flex;
+      justify-content:space-between;
+      margin-bottom:6px;
+    }
+
+    .author{ color:var(--accent); font-weight:600; }
+    .time{ color:var(--muted); font-size:.8rem; }
+    .content{ white-space:pre-wrap; line-height:1.45; }
+
+    footer{
+      text-align:center;
+      color:var(--muted);
+      font-size:.8rem;
+      padding:30px 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="nav">
+    <div class="logo">bc<span>social</span></div>
+    <small style="color:var(--muted)">Share scientific ideas openly</small>
+  </div>
+</header>
+
+<main>
+  <section>
+    <div class="composer">
+      <h2>Create a post</h2>
+      <input id="nameInput" placeholder="Your name">
+      <textarea id="postInput" placeholder="Share a scientific idea..."></textarea>
+      <div class="actions">
+        <small id="status" style="color:var(--muted)"></small>
+        <button onclick="createPost()">Post</button>
+      </div>
+    </div>
+
+    <div id="feed" class="feed"></div>
+  </section>
+
+  <aside>
+    <div class="card">
+      <h3>About</h3>
+      <p style="color:var(--muted)">
+        bcsocial is a science-first micro-network for sharing ideas, hypotheses,
+        and experiments.
+      </p>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  bcsocial • experimental science network
+</footer>
+
+<script>
+  const STORAGE_KEY = "bcsocial_posts";
+  const feed = document.getElementById("feed");
+  const statusEl = document.getElementById("status");
+
+  function loadPosts(){
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return [];
+    try { return JSON.parse(raw); }
+    catch { return []; }
+  }
+
+  function savePosts(posts){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
+  }
+
+  function createPost(){
+    const name = nameInput.value.trim();
+    const content = postInput.value.trim();
+
+    if(!name || !content){
+      statusEl.textContent = "Name and content required.";
+      return;
+    }
+
+    const post = {
+      id: crypto.randomUUID(),
+      author: name,
+      content: content,
+      timestamp: Date.now()
+    };
+
+    const posts = loadPosts();
+    posts.unshift(post);
+    savePosts(posts);
+
+    renderPost(post, true);
+    postInput.value = "";
+    statusEl.textContent = "Post saved locally.";
+  }
+
+  function renderPost(post, prepend=false){
+    const el = document.createElement("div");
+    el.className = "post";
+    el.innerHTML = `
+      <div class="meta">
+        <div class="author">${post.author}</div>
+        <div class="time">${new Date(post.timestamp).toLocaleString()}</div>
+      </div>
+      <div class="content"></div>
+    `;
+    el.querySelector(".content").textContent = post.content;
+    prepend ? feed.prepend(el) : feed.appendChild(el);
+  }
+
+  loadPosts().forEach(p => renderPost(p));
+</script>
+
+</body>
+</html>
